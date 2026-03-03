@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.venv/
+env/
+venv/
+ENV/
+bin/
+lib/
+share/
+__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# Environment / Sensitive
+.env
+.env.example
+*.pkl
+*.pth
+*.zip
+!backend/.env.example
+
+# Logs
+*.log
+logs/
+
+# Exclude everything except backend and essential root files
+/*
+!/backend/
+!/models/
+!/README.md
+!/.gitignore
+!/render.yaml
+
+# Inside backend, exclude training and debug scripts
+/backend/train_*.py
+/backend/debug_*.py
+/backend/check_*.py
+/backend/test_*.py
+/backend/verify_*.py
+/backend/inspect_*.py
+/backend/augment_*.py
+/backend/generate_*.py
+/backend/evaluate_*.py
+
+# Root level scripts
+/*.py

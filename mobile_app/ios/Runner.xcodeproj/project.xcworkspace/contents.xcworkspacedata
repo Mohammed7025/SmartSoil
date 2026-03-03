@@ -1,0 +1,26 @@
+Gemini API Error: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",    
+    "status": "NOT_FOUND"
+  }
+}
+
+Chat Error: 404: AI Provider Error: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",    
+    "status": "NOT_FOUND"
+  }
+}
+
+INFO:     127.0.0.1:62378 - "POST /chat HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:51725 - "OPTIONS /predict/irrigation HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62378 - "POST /predict/irrigation HTTP/1.1" 200 OK
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "self:">
+   </FileRef>
+</Workspace>
