@@ -20,10 +20,13 @@ __pycache__/
 # Environment / Sensitive
 .env
 .env.example
-*.pkl
-*.pth
-*.zip
 !backend/.env.example
+
+# Models (Include these for deployment)
+!*.pkl
+!*.pth
+!*.zip
+!*.npy
 
 # Logs
 *.log
