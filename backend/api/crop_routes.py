@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 from utils.model_loader import get_model
 from utils.preprocessing import preprocess_input
 from utils.explain import generate_shap_explanation
@@ -8,18 +9,44 @@ import numpy as np
 router = APIRouter()
 
 class CropInput(BaseModel):
+    location: str
+    month: str
     n: float
     p: float
     k: float
-    temperature: float
-    humidity: float
     ph: float
-    rainfall: float
+    temperature: Optional[float] = None
+    humidity: Optional[float] = None
+    rainfall: Optional[float] = None
 
 @router.post("/predict/crop")
 async def predict_crop(input_data: CropInput):
+    from utils.weather_service import get_monthly_weather
     swift_model = get_model("swift_crop")
     swift_encoder = get_model("encoder_swift_crop")
+    
+    data = input_data.model_dump()
+    
+    if data.get('temperature') is not None and data.get('humidity') is not None and data.get('rainfall') is not None:
+        weather = {
+            'temperature': data['temperature'],
+            'humidity': data['humidity'],
+            'rainfall': data['rainfall']
+        }
+    else:
+        weather = get_monthly_weather(data['location'], data['month'])
+    
+    if not weather:
+        return {
+            "prediction": "Error", 
+            "confidence": 0.0, 
+            "note": "Could not fetch weather data for the specified location and month.",
+            "explain": {}
+        }
+        
+    data['temperature'] = weather['temperature']
+    data['humidity'] = weather['humidity']
+    data['rainfall'] = weather['rainfall']
     
     # ------------------
     # STRATEGY 1: SwiFT Optimized
@@ -37,16 +64,16 @@ async def predict_crop(input_data: CropInput):
             
             if not os.path.exists(scaler_path):
                 print("Scaler params not found, using default normalization (0-1 approx)")
-                mins = np.array([0]*10)
-                maxs = np.array([200, 200, 200, 50, 100, 14, 300, 200, 5000, 20])
+                means = np.array([50.0, 50.0, 50.0, 25.0, 50.0, 6.5, 100.0, 50.0, 1500.0, 7.0])
+                stds = np.array([20.0, 20.0, 20.0, 5.0, 20.0, 1.0, 50.0, 20.0, 500.0, 2.0])
             else:
                 with open(scaler_path, "rb") as f:
                     params = pickle.load(f)
-                    mins = params['min']
-                    maxs = params['max']
+                    means = params['mean']
+                    stds = params['std']
 
             # 2. Feature Engineering & Sanity Check
-            data = input_data.model_dump()
+            # data has already been populated with temperature, humidity, rainfall
             
             # Fix 1: Rainfall Sanity Check (Seasonal Minimum)
             if data['rainfall'] < 5:
@@ -58,10 +85,7 @@ async def predict_crop(input_data: CropInput):
             heat_index = data['temperature'] * data['humidity']
             soil_health = data['ph'] + (npk_ratio / 100.0)
             
-            # Season Heuristic
-            # 0: Kharif (Rain > 100)
-            # 1: Rabi (Temp < 25 & Rain <= 100)
-            # 2: Zaid (Else)
+            # Season Heuristic (Confirmed identical to training)
             if data['rainfall'] > 100:
                 season = 0
             elif data['temperature'] < 25:
@@ -70,15 +94,14 @@ async def predict_crop(input_data: CropInput):
                 season = 2
                 
             # 3. Prepare Inputs
-            # Continuous: N, P, K, Temp, Hum, pH, Rain, Ratio, Heat, Soil
             raw_cont = np.array([
                 data['n'], data['p'], data['k'], 
                 data['temperature'], data['humidity'], data['ph'], data['rainfall'],
                 npk_ratio, heat_index, soil_health
             ])
             
-            # Normalize (Min-Max)
-            norm_cont = (raw_cont - mins) / (maxs - mins + 1e-6)
+            # Normalize (Standardization: X - mean / std)
+            norm_cont = (raw_cont - means) / (stds + 1e-6)
             
             # Tensors
             x_cont = torch.tensor(norm_cont, dtype=torch.float32).unsqueeze(0) # (1, 10)
@@ -131,52 +154,26 @@ async def predict_crop(input_data: CropInput):
             if confidence < 0.5:
                 note = "Moderate suitability – irrigation required"
                 
-            # Fix 3: Simplistic Rule-Based "SHAP" (Impact Factors)
-            impact_factors = {}
-            
-            # Temperature Rules
-            if data['temperature'] > 30:
-                impact_factors["Temperature"] = "High impact"
-            elif data['temperature'] < 15:
-                impact_factors["Temperature"] = "Cold stress"
-                
-            # Rainfall Rules
-            if data['rainfall'] < 50:
-                impact_factors["Rainfall"] = "Negative impact (Low)"
-            elif data['rainfall'] > 200:
-                impact_factors["Rainfall"] = "High impact (Abundant)"
-                
-            # Humidity Rules
-            if data['humidity'] > 80:
-                impact_factors["Humidity"] = "High impact (Humid)"
-            elif data['humidity'] < 30:
-                impact_factors["Humidity"] = "Negative impact (Dry)"
-                
-            # NPK Rules (Generic)
-            if npk_ratio > 100:
-                impact_factors["Soil Nutrients"] = "Rich soil"
+            # --- Modern SHAP Explanation ---
+            # input_vector for SwiFT is a tuple of (cont, cat)
+            explanation = generate_shap_explanation(swift_model, (x_cont.numpy(), x_cat.numpy()))
 
             return {
                 "prediction": predicted_crop,
                 "confidence": round(confidence, 4),
-                "model_used": "SwiFT (Optimized)",
+                "model_used": "SwiFT (XAI Enabled)",
                 "note": note,
                 "explain": {
                     "top_3": [
                         {"crop": name, "prob": round(float(prob), 4)} 
                         for name, prob in zip(top3_names, top3_probs[0].numpy())
                     ],
-                    "factors": impact_factors,
-                    # Added for Charting: Convert Dict to List[Object]
-                    "chart_data": [
-                         {"name": k, "impact": 10 if "High" in v else (5 if "Moderate" in v else -5)}
-                         for k, v in impact_factors.items()
-                    ]
+                    **explanation
                 }
             }
         except Exception as e:
-            print(f"SwiFT Prediction Error: {e}")
             import traceback
+            print(f"SwiFT Prediction Error: {e}")
             traceback.print_exc()
             # Fallthrough to TabNet (Legacy)
             pass
@@ -187,7 +184,6 @@ async def predict_crop(input_data: CropInput):
     model = get_model("tabnet_crop")
     encoder = get_model("encoder_crop")
     
-    # Just return error if fallback also missing
     if not model:
         return {
            "prediction": "Model loading...",
@@ -196,23 +192,20 @@ async def predict_crop(input_data: CropInput):
         }
         
     try:
-        # Legacy preprocessing for TabNet
-        input_vector = preprocess_input(input_data.model_dump(), mode='minmax')
-        
+        input_vector = preprocess_input(data, mode='minmax')
         probs = model.predict_proba(input_vector)[0]
         top_class_idx = np.argmax(probs)
         confidence = float(probs[top_class_idx])
         
-        if encoder:
-            predicted_crop = encoder.inverse_transform([top_class_idx])[0]
-        else:
-            predicted_crop = f"Class {top_class_idx}"
+        predicted_crop = encoder.inverse_transform([top_class_idx])[0] if encoder else f"Class {top_class_idx}"
             
+        explanation = generate_shap_explanation(model, input_vector)
+
         return {
             "prediction": predicted_crop,
             "confidence": round(confidence, 4),
-            "model_used": "TabNet (Legacy)",
-            "explain": {}
+            "model_used": "TabNet (Fallback XAI)",
+            "explain": explanation
         }
     except Exception as e:
         print(f"Legacy Prediction Error: {e}")

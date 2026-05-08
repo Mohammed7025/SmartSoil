@@ -17,7 +17,7 @@ try:
         models = response.json().get('models', [])
         # Only print models that support generation, limit to first 10
         valid_models = [m['name'] for m in models if 'generateContent' in m.get('supportedGenerationMethods', [])]
-        print(f"VALID: {valid_models[:10]}")
+        print(f"VALID: {valid_models}")
     else:
         print(f"ERR: {response.status_code}")
 except Exception as e:

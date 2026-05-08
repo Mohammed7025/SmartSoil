@@ -1,132 +1,101 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import os
-import requests
+import asyncio
 from dotenv import load_dotenv
+import time
+
+from mistralai import Mistral
 
 # Load environment variables from .env
 load_dotenv()
 
 router = APIRouter()
 
-import time
-# Read Gemini API key
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Read Mistral API key
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
-LAST_CALL = 0
+if not MISTRAL_API_KEY:
+    print("❌ MISTRAL_API_KEY not found in environment variables")
 
-if not GEMINI_API_KEY:
-    print("❌ GEMINI_API_KEY not found in environment variables")
+# Initialize Mistral Client
+client = None
+if MISTRAL_API_KEY:
+    try:
+        client = Mistral(api_key=MISTRAL_API_KEY)
+    except Exception as e:
+        print(f"❌ Failed to initialize Mistral Client: {e}")
+
+chat_memory = {}
 
 # ---------- Request Model ----------
 class ChatInput(BaseModel):
     message: str
-    context: str = ""  # Optional soil / crop context
-
+    user_id: str = "default_user"
+    context: str = ""
 
 # ---------- Chat Endpoint ----------
 @router.post("/chat")
 async def chat_with_advisor(data: ChatInput):
-    global LAST_CALL
-    now = time.time()
-    
-    if now - LAST_CALL < 5: # 5 second cooldown
-         raise HTTPException(
-            status_code=429,
-            detail="⏳ Please wait a few seconds before asking again."
-        )
-    
-    LAST_CALL = now
-
-    if not GEMINI_API_KEY:
+    if not client:
         raise HTTPException(
             status_code=500,
-            detail="Gemini API Key not configured on server."
+            detail="Mistral AI Client not initialized."
         )
-
-    # ✅ UPDATED MODEL (Verified via debug script)
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        "gemini-2.0-flash:generateContent"
-        f"?key={GEMINI_API_KEY}"
-    )
 
     system_prompt = """
-You are an expert Agricultural Advisor for the 'Smart Soil' project.
-
-Your role:
-- Help farmers with crop, fertilizer, and irrigation advice
-- Use soil data when provided
-- Keep answers short, practical, and easy to understand
+You are AgroBot, an agricultural assistant that helps with crops, soil health, irrigation, and fertilizer advice.
+Keep responses short and clear.
 
 Rules:
-1. Use soil values (N, P, K, pH, moisture) if given
-2. Give actionable farming advice
-3. Avoid technical jargon
-4. If question is NOT about farming, politely redirect to agriculture
+1. Max 3 sentences per response. 
+2. Ask ONLY one question at a time to collect data.
+3. Be direct and farmer-friendly.
+4. You can communicate in any language. Always reply in the user's language.
 """
 
-    # Combine system + user input
-    final_prompt = f"""
-{system_prompt}
-
-Soil / Farm Context:
-{data.context}
-
-Farmer Question:
-{data.message}
-"""
-
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": final_prompt}
-                ]
-            }
+    # Initialize memory for user
+    if data.user_id not in chat_memory:
+        chat_memory[data.user_id] = [
+            {"role": "system", "content": system_prompt}
         ]
-    }
 
-    headers = {
-        "Content-Type": "application/json"
-    }
+    # Add new user message
+    chat_memory[data.user_id].append(
+        {"role": "user", "content": data.message}
+    )
 
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
+    # Limit memory to avoid large prompts (last 10 + system prompt)
+    if len(chat_memory[data.user_id]) > 11:
+        chat_memory[data.user_id] = [chat_memory[data.user_id][0]] + chat_memory[data.user_id][-10:]
 
-        if response.status_code != 200:
-            print(f"❌ Gemini API Error ({response.status_code}):", response.text)
-            
-            if response.status_code == 429:
-                 raise HTTPException(
-                    status_code=429,
-                    detail="⚠️ Monthly/Daily AI Quota Exceeded. Please try again later."
-                )
-            
-            raise HTTPException(
-                status_code=500,
-                detail=f"AI Provider Error ({response.status_code})."
-            )
-
-        result = response.json()
-
-        # Safely extract text
+    async def generate_stream():
         try:
-            answer = (
-                result["candidates"][0]
-                ["content"]["parts"][0]
-                ["text"]
+            stream = client.chat.stream(
+                model="mistral-small-latest",
+                temperature=0.4,
+                messages=chat_memory[data.user_id]
             )
-        except (KeyError, IndexError):
-            answer = "Sorry, I couldn't generate a response."
 
-        return {
-            "response": answer.strip()
-        }
+            full_response = ""
+            for chunk in stream:
+                if chunk.data.choices[0].delta.content is not None:
+                    content = chunk.data.choices[0].delta.content
+                    full_response += content
+                    yield content
 
-    except requests.exceptions.RequestException as e:
-        print("❌ Network Error:", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to contact AI service."
-        )
+            # Save assistant reply
+            chat_memory[data.user_id].append(
+                {"role": "assistant", "content": full_response}
+            )
+
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg:
+                yield "⚠️ AgroBot is a little busy right now (Quota Reached). Please wait a few seconds and try again."
+            else:
+                print(f"❌ Chat Error: {e}")
+                yield "Sorry, I'm having trouble connecting to my AI brain. Please try again later."
+
+    return StreamingResponse(generate_stream(), media_type="text/plain")

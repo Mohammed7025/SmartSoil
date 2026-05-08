@@ -23,37 +23,51 @@
 
 /* Smart Soil Web - Enterprise Design System Variables */
 :root {
-  /* Brand Colors - Professional Agriculture */
-  --primary: 145 80% 25%;
-  /* #0D7324 Deep Green */
-  --primary-light: 145 70% 45%;
-  /* Lighter Green */
-  --secondary: 200 90% 40%;
-  /* #0A84D1 Professional Blue */
-  --accent: 35 90% 50%;
-  /* #F2A900 Warning/Alert */
+  /* Brand Colors - Warm Neutral Editorial Theme */
+  --primary: 30 10% 41%;
+  /* #7C6F64 Muted Warm Brown */
+  --primary-light: 30 10% 50%;
+  /* Lighter Brown */
+  --secondary: 162 16% 60%;
+  /* #8AA89E Soft Sage Green */
+  --highlight: 206 25% 54%;
+  /* #6C8FA8 Soft blue */
 
   /* Backgrounds */
-  --bg-body: 210 20% 98%;
-  /* #F9FAFB */
+  --bg-body: 41 29% 94%;
+  /* #F5F1E8 Soft Cream */
   --bg-surface: 0 0% 100%;
   /* #FFFFFF */
-  --bg-sidebar: 210 20% 98%;
-  /* Light sidebar */
-  --border-color: 220 15% 90%;
-  /* #E2E8F0 */
+  --bg-sidebar: 38 23% 90%;
+  /* #EDE7DC Warm Beige */
+  --border-color: 36 18% 87%;
+  /* #E6E0D6 */
 
   /* Text */
-  --text-primary: 220 40% 10%;
-  /* #0F172A */
-  --text-secondary: 220 15% 40%;
-  /* #575F6E */
+  --text-primary: 27 10% 16%;
+  /* #2F2A26 */
+  --text-secondary: 27 9% 38%;
+  /* #6B6259 */
   --text-light: 0 0% 100%;
 
   /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* AgroBot Nature Theme (Preserved for compatibility if needed, but updated colors for light theme) */
+  --earth-brown: 20 20% 47%;
+  --warm-beige: 45 40% 95%;
+  --muted-green: 145 50% 45%;
+  --off-white: 40 20% 98%;
+  --agrobot-cream: 45 30% 98%;
+}
+
+.wood-texture {
+  background-color: hsl(var(--warm-beige));
+  background-image:
+    repeating-linear-gradient(90deg, transparent, transparent 50px, hsla(20, 20%, 30%, 0.02) 50px, hsla(20, 20%, 30%, 0.02) 51px),
+    repeating-linear-gradient(0deg, transparent, transparent 70px, hsla(20, 20%, 30%, 0.01) 70px, hsla(20, 20%, 30%, 0.01) 71px);
 }
 
 body {
@@ -68,31 +82,46 @@ body {
   /* We preserve these semantic classes but powered by Tailwind */
 
   .card {
-    @apply bg-bg-surface border border-border-color rounded-md shadow-sm p-6 transition-all hover:shadow-md;
+    @apply bg-bg-surface border border-border-color rounded-lg p-6 transition-all hover:shadow-lg;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
   }
 
   .btn {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-sm font-medium text-sm transition-all border border-transparent cursor-pointer;
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all border border-transparent cursor-pointer;
   }
 
   .btn-primary {
-    @apply bg-primary text-white hover:bg-primary-light;
+    @apply text-white shadow-sm;
+    background-color: #7C6F64;
+    border-radius: 12px;
+  }
+
+  .btn-primary:hover {
+    background-color: #6B5F55;
+    transform: none;
   }
 
   .btn-outline {
-    @apply bg-transparent border-border-color text-text-primary hover:bg-bg-body hover:border-text-secondary;
+    @apply bg-transparent border-[#E3DDD3] text-[#6B6259] hover:bg-[#FBF8F3] hover:border-[#D7CDC1];
+  }
+
+  input,
+  select,
+  textarea {
+    @apply bg-[#FBF8F3] border-[#E3DDD3] rounded-md px-4 py-2 text-[#2F2A26] placeholder-[#9C8F80] transition-colors focus:outline-none focus:border-[#7C6F64] focus:ring-1 focus:ring-[#7C6F64]/20;
   }
 
   .h1 {
-    @apply text-3xl font-bold tracking-tight text-text-primary;
+    @apply text-3xl font-bold tracking-tight text-[#2F2A26];
   }
 
   .h2 {
-    @apply text-2xl font-semibold tracking-tight text-text-primary;
+    @apply text-2xl font-semibold tracking-tight text-[#2F2A26];
   }
 
   .h3 {
-    @apply text-xl font-semibold text-text-primary;
+    @apply text-xl font-semibold text-[#2F2A26];
   }
 
   /* Layout Structure */
@@ -101,7 +130,11 @@ body {
   }
 
   .sidebar {
-    @apply w-64 bg-bg-sidebar border-r border-border-color h-screen sticky top-0 flex flex-col p-4;
+    @apply w-72 bg-bg-sidebar border-r border-border-color h-screen sticky top-0 flex flex-col p-6 transition-all duration-300 z-20;
+  }
+
+  .sidebar.collapsed {
+    @apply w-[5.5rem] px-3;
   }
 
   .main-content {
@@ -110,30 +143,54 @@ body {
 
   /* Navigation Styles */
   .logo-area {
-    @apply flex items-center gap-3 mb-8 px-2;
+    @apply flex items-center gap-3 mb-10 px-2 relative transition-all duration-300;
   }
 
   .logo-icon {
-    @apply w-10 h-10 rounded-lg bg-primary text-white flex items-center justify-center;
+    @apply w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center;
+    background-color: #7C6F64;
   }
 
   .nav-list {
-    @apply flex flex-col gap-2 flex-1;
+    @apply flex flex-col gap-1 flex-1;
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-md text-text-secondary transition-colors font-medium hover:bg-white hover:text-primary hover:shadow-sm;
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-[#6B6259] transition-all font-semibold hover:bg-[#EDE7DC] hover:text-[#2F2A26];
   }
 
   .nav-item.active {
-    @apply bg-primary text-white shadow-md shadow-primary/20;
+    @apply shadow-sm;
+    background-color: #E7DED2;
+    color: #7C6F64;
   }
 
   .user-area {
-    @apply mt-auto pt-4 border-t border-border-color flex items-center gap-3 px-2;
+    @apply mt-auto pt-4 border-t border-border-color flex items-center gap-3 px-2 transition-all duration-300 pb-2;
   }
 
   .avatar {
     @apply w-10 h-10 rounded-full bg-secondary/10 text-secondary font-bold flex items-center justify-center;
+  }
+
+  /* Premium UI Utilities */
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 rounded-3xl p-6;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+
+  .glass-card-dark {
+    @apply bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl p-6 transition-all duration-300;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400;
+  }
+
+  .bg-mesh {
+    background-color: #f9fafb;
+    background-image:
+      radial-gradient(at 0% 0%, hsla(145, 80%, 25%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(200, 90%, 40%, 0.05) 0px, transparent 50%);
   }
 }

@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import { getCurrentWeather, getLatestSoilData } from '../services/api';
-import { Sprout, Beaker, ChevronRight, Activity, Sparkles, Wind, Droplets, Thermometer, Database, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { getCurrentWeather, getLatestSoilData, getActiveLocation } from '../services/api';
+import { Sprout, Beaker, ChevronRight, Activity, Sparkles, Wind, Droplets, Thermometer, Database, Info, MapPin, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
 const ToolCard = ({ title, desc, icon: Icon, onClick }) => (
     <motion.div
         whileHover={{ y: -5, scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className="glass-panel p-8 cursor-pointer group relative overflow-hidden border border-white/5 hover:border-[hsl(var(--primary))] transition-all duration-300 shadow-2xl hover:shadow-[0_0_30px_rgba(0,230,118,0.1)]"
+        className="bg-white p-8 cursor-pointer group relative overflow-hidden border border-[#E6E0D6] hover:border-[#7C6F64] transition-all duration-300 shadow-sm hover:shadow-md rounded-[16px]"
     >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--primary))] opacity-5 rounded-full blur-[50px] -mr-16 -mt-16 group-hover:opacity-10 transition-opacity" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#7C6F64] opacity-[0.03] rounded-full blur-[50px] -mr-16 -mt-16 group-hover:opacity-5 transition-opacity" />
 
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[rgba(0,204,106,0.2)] to-[rgba(0,204,106,0.05)] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-white/5">
-            <Icon className="w-8 h-8 text-emerald-400 group-hover:text-white transition-colors" />
+        <div className="w-16 h-16 rounded-2xl bg-[#7C6F64]/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border border-[#E6E0D6]">
+            <Icon className="w-8 h-8 text-[#7C6F64]/70 group-hover:text-[#7C6F64] transition-colors" />
         </div>
 
-        <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-emerald-400 transition-colors">{title}</h3>
-        <p className="text-gray-300 mb-8 leading-relaxed">{desc}</p>
+        <h3 className="text-2xl font-bold mb-3 text-[#2F2A26] transition-colors">{title}</h3>
+        <p className="text-[#6B6259] mb-8 leading-relaxed">{desc}</p>
 
-        <div className="flex items-center text-emerald-400 font-bold text-sm uppercase tracking-wide">
+        <div className="flex items-center text-[#7C6F64] font-bold text-sm uppercase tracking-wide">
             Launch Tool <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
         </div>
     </motion.div>
@@ -28,18 +28,41 @@ const ToolCard = ({ title, desc, icon: Icon, onClick }) => (
 
 const InputField = ({ label, name, value, onChange, placeholder, icon: Icon }) => (
     <div className="group">
-        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[hsl(var(--text-secondary))] mb-2 ml-1 group-focus-within:text-[hsl(var(--primary))] transition-colors">
+        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#6B6259] mb-2 ml-1 group-focus-within:text-[#7C6F64] transition-colors">
             {Icon && <Icon className="w-3 h-3" />} {label}
         </label>
         <div className="relative">
             <input
-                type="number"
+                type={name === 'location' ? 'text' : 'number'}
                 name={name}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
-                className="w-full bg-[rgba(0,0,0,0.2)] border border-white/10 rounded-xl px-4 py-4 text-white placeholder-white/20 focus:border-[hsl(var(--primary))] focus:bg-[rgba(0,230,118,0.05)] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--primary))] transition-all font-medium"
+                className="w-full bg-[#FBF8F3] border border-[#E3DDD3] rounded-md px-4 py-4 text-[#2F2A26] placeholder-[#9C8F80] focus:border-[#7C6F64] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7C6F64]/20 transition-all font-medium"
             />
+        </div>
+    </div>
+);
+
+const SelectField = ({ label, name, value, onChange, options, icon: Icon }) => (
+    <div className="group">
+        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#6B6259] mb-2 ml-1 group-focus-within:text-[#7C6F64] transition-colors">
+            {Icon && <Icon className="w-3 h-3" />} {label}
+        </label>
+        <div className="relative">
+            <select
+                name={name}
+                value={value}
+                onChange={onChange}
+                className="w-full bg-[#FBF8F3] border border-[#E3DDD3] rounded-md px-4 py-4 text-[#2F2A26] focus:border-[#7C6F64] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7C6F64]/20 transition-all font-medium appearance-none"
+            >
+                {options.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#9C8F80]">
+                <ChevronRight className="w-4 h-4 rotate-90" />
+            </div>
         </div>
     </div>
 );
@@ -48,11 +71,21 @@ const RecommendationSection = () => {
     const [activeTool, setActiveTool] = useState(null);
     const [formData, setFormData] = useState({
         n: '', p: '', k: '',
-        temperature: '', humidity: '', ph: '', rainfall: ''
+        location: '', month: 'January', ph: '', soilMoisture: '',
+        temperature: '', humidity: '', rainfall: '',
+        soilType: 'Loamy', cropType: 'Maize'
     });
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    useEffect(() => {
+        getActiveLocation().then(data => {
+            if (data && data.name && data.name !== "Unknown") {
+                setFormData(prev => ({ ...prev, location: data.name }));
+            }
+        });
+    }, []);
 
     // Expert Advice Data
     const FERTILIZER_INFO = {
@@ -88,15 +121,19 @@ const RecommendationSection = () => {
         else if (activeTool === 'irrigation') endpoint += '/irrigation';
 
         try {
-            // Strict Float Parsing (Matching Flutter Logic)
             const payload = {
-                n: parseFloat(formData.n) || 0.0,
-                p: parseFloat(formData.p) || 0.0,
-                k: parseFloat(formData.k) || 0.0,
-                temperature: parseFloat(formData.temperature) || 0.0,
-                humidity: parseFloat(formData.humidity) || 0.0,
-                ph: parseFloat(formData.ph) || 7.0, // Default pH 7
-                rainfall: parseFloat(formData.rainfall) || 0.0
+                location: formData.location || "London",
+                month: formData.month,
+                n: !isNaN(parseFloat(formData.n)) ? parseFloat(formData.n) : 0.0,
+                p: !isNaN(parseFloat(formData.p)) ? parseFloat(formData.p) : 0.0,
+                k: !isNaN(parseFloat(formData.k)) ? parseFloat(formData.k) : 0.0,
+                temperature: formData.temperature !== '' ? parseFloat(formData.temperature) : null,
+                humidity: formData.humidity !== '' ? parseFloat(formData.humidity) : null,
+                rainfall: formData.rainfall !== '' ? parseFloat(formData.rainfall) : null,
+                ph: !isNaN(parseFloat(formData.ph)) ? parseFloat(formData.ph) : 7.0, // Default pH 7
+                soil_moisture: !isNaN(parseFloat(formData.soilMoisture)) ? parseFloat(formData.soilMoisture) : 50.0,
+                soilType: formData.soilType === 'Clay' ? 'Clayey' : formData.soilType,
+                cropType: formData.cropType
             };
 
             const response = await fetch(endpoint, {
@@ -133,13 +170,14 @@ const RecommendationSection = () => {
 
             // Allow manual override if needed, but fill with API data
             // Use forecast rain if current rain is 0, to give some data
-            const rainValue = data.rainfall > 0 ? data.rainfall : (data.rainfall_forecast_24h || 0);
+            const rainValue = data.rainfall > 0 ? data.rainfall : (data.rainfall_forecast_24h !== undefined ? data.rainfall_forecast_24h : 0);
 
             setFormData(prev => ({
                 ...prev,
-                temperature: data.temperature || prev.temperature,
-                humidity: data.humidity || prev.humidity,
-                rainfall: rainValue || prev.rainfall
+                temperature: data.temperature !== undefined ? data.temperature : prev.temperature,
+                humidity: data.humidity !== undefined ? data.humidity : prev.humidity,
+                rainfall: rainValue !== undefined ? rainValue : prev.rainfall,
+                // Removed the heuristic soilMoisture overwrite so it doesn't destroy real sensor data
             }));
         } catch (e) {
             console.error(e);
@@ -147,18 +185,19 @@ const RecommendationSection = () => {
         }
     };
 
+
     const handleFetchSoilData = async () => {
         try {
             const data = await getLatestSoilData();
             if (data) {
                 setFormData(prev => ({
                     ...prev,
-                    n: data.n || prev.n,
-                    p: data.p || prev.p,
-                    k: data.k || prev.k,
-                    ph: data.ph || prev.ph,
-                    // Some sensors might also provide humidity/temp
-                    humidity: data.moisture || prev.humidity
+                    n: data.n !== undefined ? data.n : prev.n,
+                    p: data.p !== undefined ? data.p : prev.p,
+                    k: data.k !== undefined ? data.k : prev.k,
+                    ph: data.ph !== undefined ? data.ph : prev.ph,
+                    // Removed humidity and temp overwrites to avoid conflicts with Fetch Live Weather
+                    soilMoisture: data.moisture !== undefined ? data.moisture : prev.soilMoisture
                 }));
             } else {
                 alert("No live soil data available.");
@@ -170,17 +209,21 @@ const RecommendationSection = () => {
     };
 
     const resetForm = () => {
-        setFormData({ n: '', p: '', k: '', temperature: '', humidity: '', ph: '', rainfall: '' });
+        setFormData({
+            n: '', p: '', k: '',
+            location: '', month: 'January', ph: '', soilMoisture: '',
+            temperature: '', humidity: '', rainfall: '',
+            soilType: 'Loamy', cropType: 'Maize'
+        });
         setResult(null);
         setError(null);
     };
 
     return (
-        <section id="tools" className="relative py-20 min-h-screen overflow-hidden">
-            {/* Ambient Background Elements */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#051005] to-black/90 pointer-events-none" />
-            <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[hsl(var(--primary))] opacity-[0.03] rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-blue-500 opacity-[0.02] rounded-full blur-[120px] pointer-events-none" />
+        <section id="tools" className="relative py-20 min-h-screen overflow-hidden bg-[#F5F1E8]">
+            {/* Ambient Ambient Background Elements */}
+            <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#7C6F64] opacity-[0.02] rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#8AA89E] opacity-[0.02] rounded-full blur-[120px] pointer-events-none" />
 
             <div className="container relative z-10 px-4 md:px-6">
                 <AnimatePresence mode="wait">
@@ -197,10 +240,10 @@ const RecommendationSection = () => {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.6 }}
                                 >
-                                    <h2 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-white">
-                                        AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-[hsl(var(--primary))] to-emerald-300">Analysis</span>
+                                    <h2 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-[#2F2A26]">
+                                        AI <span className="text-[#7C6F64]">Analysis</span>
                                     </h2>
-                                    <p className="text-xl text-[hsl(var(--text-muted))] max-w-2xl mx-auto leading-relaxed">
+                                    <p className="text-xl text-[#6B6259] max-w-2xl mx-auto leading-relaxed">
                                         Precision agriculture powered by advanced machine learning models. Select a tool to begin optimizing your yield.
                                     </p>
                                 </motion.div>
@@ -242,7 +285,7 @@ const RecommendationSection = () => {
                         >
                             <button
                                 onClick={() => { setActiveTool(null); resetForm(); }}
-                                className="group mb-8 flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[hsl(var(--primary))] transition-all text-sm font-medium text-[hsl(var(--text-muted))] hover:text-white"
+                                className="group mb-8 flex items-center gap-3 px-5 py-2.5 rounded-full bg-white border border-[#E6E0D6] hover:border-[#7C6F64] transition-all text-sm font-medium text-[#6B6259] hover:text-[#2F2A26] shadow-sm"
                             >
                                 <ChevronRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
                                 Return to Hub
@@ -250,18 +293,18 @@ const RecommendationSection = () => {
 
                             <div className="grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-8 items-start">
                                 {/* Left: Input Form */}
-                                <div className="glass-panel p-8 md:p-10 border border-white/10 shadow-2xl bg-black/40 backdrop-blur-xl rounded-3xl">
-                                    <div className="flex items-center gap-6 mb-10 pb-8 border-b border-white/10">
-                                        <div className="p-4 bg-gradient-to-br from-[rgba(0,255,118,0.15)] to-transparent rounded-2xl border border-white/5 shadow-inner">
-                                            {activeTool === 'crop' && <Sprout className="w-10 h-10 text-[hsl(var(--primary))]" />}
-                                            {activeTool === 'fertilizer' && <Beaker className="w-10 h-10 text-[hsl(var(--primary))]" />}
-                                            {activeTool === 'irrigation' && <Droplets className="w-10 h-10 text-[hsl(var(--primary))]" />}
+                                <div className="bg-white p-8 md:p-10 border border-[#E6E0D6] shadow-sm rounded-3xl">
+                                    <div className="flex items-center gap-6 mb-10 pb-8 border-b border-[#E6E0D6]">
+                                        <div className="p-4 bg-[#FBF8F3] rounded-2xl border border-[#E6E0D6]">
+                                            {activeTool === 'crop' && <Sprout className="w-10 h-10 text-[#7C6F64]" />}
+                                            {activeTool === 'fertilizer' && <Beaker className="w-10 h-10 text-[#7C6F64]" />}
+                                            {activeTool === 'irrigation' && <Droplets className="w-10 h-10 text-[#7C6F64]" />}
                                         </div>
                                         <div>
-                                            <h3 className="text-3xl font-bold text-white mb-2">
+                                            <h3 className="text-3xl font-bold text-[#2F2A26] mb-2">
                                                 {activeTool === 'crop' ? 'Crop Recommendation' : activeTool === 'fertilizer' ? 'Fertilizer Optimizer' : 'Irrigation Scheduler'}
                                             </h3>
-                                            <p className="text-[hsl(var(--text-muted))]">
+                                            <p className="text-[#6B6259]">
                                                 Configure parameters for the AI model.
                                             </p>
                                         </div>
@@ -269,45 +312,97 @@ const RecommendationSection = () => {
 
                                     <form onSubmit={handlePredict} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                         <div className="md:col-span-2">
-                                            <div className="flex justify-between items-center mb-6">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-1 h-6 bg-[hsl(var(--highlight))] rounded-full" />
-                                                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Soil Chemistry</h4>
+                                            {activeTool !== 'irrigation' && (
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1 h-6 bg-[#7C6F64] rounded-full" />
+                                                        <h4 className="text-sm font-bold text-[#2F2A26] uppercase tracking-wider">Soil Chemistry</h4>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleFetchSoilData}
+                                                        className="text-xs flex items-center gap-2 text-[#7C6F64] hover:bg-[#7C6F64]/5 transition-colors px-3 py-1 rounded-full border border-[#7C6F64]/20 cursor-pointer"
+                                                    >
+                                                        <Database className="w-3 h-3" /> Fetch Live Soil
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleFetchSoilData}
-                                                    className="text-xs flex items-center gap-2 text-emerald-400 hover:text-white transition-colors px-3 py-1 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 cursor-pointer"
-                                                >
-                                                    <Database className="w-3 h-3" /> Fetch Live Soil
-                                                </button>
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                                                <InputField label="Nitrogen (N)" name="n" value={formData.n} onChange={handleInputChange} placeholder="0-140" />
-                                                <InputField label="Phosphorus (P)" name="p" value={formData.p} onChange={handleInputChange} placeholder="0-145" />
-                                                <InputField label="Potassium (K)" name="k" value={formData.k} onChange={handleInputChange} placeholder="0-205" />
-                                            </div>
+                                            )}
+                                            {activeTool !== 'irrigation' && (
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                                    <InputField label="Nitrogen (N)" name="n" value={formData.n} onChange={handleInputChange} placeholder="0-140" />
+                                                    <InputField label="Phosphorus (P)" name="p" value={formData.p} onChange={handleInputChange} placeholder="0-145" />
+                                                    <InputField label="Potassium (K)" name="k" value={formData.k} onChange={handleInputChange} placeholder="0-205" />
+                                                </div>
+                                            )}
+                                            {(activeTool === 'fertilizer' || activeTool === 'irrigation') && (
+                                                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-5 ${activeTool !== 'irrigation' ? 'mt-5 pt-5 border-t border-[#E6E0D6]' : ''}`}>
+                                                    <SelectField
+                                                        label="Soil Type"
+                                                        name="soilType"
+                                                        value={formData.soilType}
+                                                        onChange={handleInputChange}
+                                                        options={['Sandy', 'Loamy', 'Clay']}
+                                                        icon={Database}
+                                                    />
+                                                    <SelectField
+                                                        label="Target Crop"
+                                                        name="cropType"
+                                                        value={formData.cropType}
+                                                        onChange={handleInputChange}
+                                                        options={['Barley', 'Cotton', 'Ground Nuts', 'Maize', 'Millets', 'Oil seeds', 'Paddy', 'Pulses', 'Sugarcane', 'Tobacco', 'Wheat']}
+                                                        icon={Sprout}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="md:col-span-2 border-t border-white/10 pt-8 mt-2">
+                                        <div className="md:col-span-2 border-t border-[#E6E0D6] pt-8 mt-2">
                                             <div className="flex justify-between items-center mb-6">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-1 h-6 bg-blue-400 rounded-full" />
-                                                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Environment</h4>
+                                                    <div className="w-1 h-6 bg-[#8AA89E] rounded-full" />
+                                                    <h4 className="text-sm font-bold text-[#2F2A26] uppercase tracking-wider">Environment</h4>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleFetchWeather}
-                                                    className="text-xs flex items-center gap-2 text-[hsl(var(--primary))] hover:text-white transition-colors px-3 py-1 rounded-full bg-[hsl(var(--primary))]/10 hover:bg-[hsl(var(--primary))]/20 border border-[hsl(var(--primary))]/20 cursor-pointer"
-                                                >
-                                                    <Wind className="w-3 h-3" /> Fetch Live Weather
-                                                </button>
+                                                <div className="flex gap-2">
+                                                    {activeTool === 'irrigation' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleFetchSoilData}
+                                                            className="text-xs flex items-center gap-2 text-[#7C6F64] hover:bg-[#7C6F64]/5 transition-colors px-3 py-1 rounded-full border border-[#7C6F64]/20 cursor-pointer"
+                                                        >
+                                                            <Database className="w-3 h-3" /> Fetch Live Moisture
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleFetchWeather}
+                                                        className="text-xs flex items-center gap-2 text-[#8AA89E] hover:bg-[#8AA89E]/5 transition-colors px-3 py-1 rounded-full border border-[#8AA89E]/20 cursor-pointer"
+                                                    >
+                                                        <Wind className="w-3 h-3" /> Fetch Live Weather
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                                                 <InputField label="Temperature (°C)" name="temperature" value={formData.temperature} onChange={handleInputChange} placeholder="e.g. 26" icon={Thermometer} />
                                                 <InputField label="Humidity (%)" name="humidity" value={formData.humidity} onChange={handleInputChange} placeholder="e.g. 80" icon={Droplets} />
-                                                <InputField label="pH Level" name="ph" value={formData.ph} onChange={handleInputChange} placeholder="0-14" icon={Beaker} />
-                                                <InputField label="Rainfall (mm)" name="rainfall" value={formData.rainfall} onChange={handleInputChange} placeholder="e.g. 200" icon={Wind} />
+                                                {activeTool !== 'irrigation' && (
+                                                    <InputField label="Rainfall (mm)" name="rainfall" value={formData.rainfall} onChange={handleInputChange} placeholder="e.g. 200" icon={Wind} />
+                                                )}
+                                                {activeTool !== 'irrigation' && (
+                                                    <InputField label="pH Level" name="ph" value={formData.ph} onChange={handleInputChange} placeholder="0-14" icon={Beaker} />
+                                                )}
+                                                {activeTool === 'irrigation' && (
+                                                    <InputField label="Soil Moisture (%)" name="soilMoisture" value={formData.soilMoisture} onChange={handleInputChange} placeholder="e.g. 45" icon={Droplets} />
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-5 border-t border-[#E6E0D6]">
+                                                <SelectField
+                                                    label="Month"
+                                                    name="month"
+                                                    value={formData.month}
+                                                    onChange={handleInputChange}
+                                                    options={['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']}
+                                                    icon={Calendar}
+                                                />
                                             </div>
                                         </div>
 
@@ -315,9 +410,8 @@ const RecommendationSection = () => {
                                             <button
                                                 type="submit"
                                                 disabled={loading}
-                                                className="group relative w-full overflow-hidden rounded-xl bg-[hsl(var(--primary))] py-5 text-lg font-bold text-black shadow-[0_0_20px_rgba(0,230,118,0.3)] transition-all hover:scale-[1.01] hover:shadow-[0_0_40px_rgba(0,230,118,0.5)] disabled:opacity-70 disabled:hover:scale-100"
+                                                className="group relative w-full overflow-hidden rounded-xl bg-[#7C6F64] py-5 text-lg font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
                                             >
-                                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                                                 <span className="relative flex items-center justify-center gap-3">
                                                     {loading ? (
                                                         <><Activity className="animate-spin w-5 h-5" /> Processing Neural Network...</>
@@ -336,13 +430,13 @@ const RecommendationSection = () => {
                                         {!result ? (
                                             <motion.div
                                                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                                className="glass-panel p-10 min-h-[400px] flex flex-col items-center justify-center text-center border-dashed border-2 border-white/10 bg-black/20 rounded-3xl"
+                                                className="bg-[#FBF8F3] p-10 min-h-[400px] flex flex-col items-center justify-center text-center border-dashed border-2 border-[#E6E0D6] rounded-3xl"
                                             >
-                                                <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 animate-pulse">
-                                                    <Activity className="w-10 h-10 text-white/20" />
+                                                <div className="w-24 h-24 rounded-full bg-[#EDE7DC] flex items-center justify-center mb-6 animate-pulse">
+                                                    <Activity className="w-10 h-10 text-[#7C6F64]/20" />
                                                 </div>
-                                                <h4 className="text-xl font-bold text-white mb-2">Awaiting Input</h4>
-                                                <p className="text-[hsl(var(--text-muted))] max-w-[250px] leading-relaxed">
+                                                <h4 className="text-xl font-bold text-[#2F2A26] mb-2">Awaiting Input</h4>
+                                                <p className="text-[#6B6259] max-w-[250px] leading-relaxed">
                                                     Fill out the parameters and launch the analysis to see real-time predictions.
                                                 </p>
                                             </motion.div>
@@ -350,108 +444,60 @@ const RecommendationSection = () => {
                                             <motion.div
                                                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                className="relative overflow-hidden rounded-3xl border border-[hsl(var(--primary))] bg-gradient-to-b from-black/80 to-[rgba(0,60,20,0.5)] p-0 shadow-[0_0_50px_rgba(0,230,118,0.15)]"
+                                                className="relative overflow-hidden rounded-3xl border border-[#7C6F64] bg-white p-0 shadow-xl"
                                             >
                                                 {/* Glowing Orb Background */}
-                                                <div className="absolute -top-24 -right-24 w-64 h-64 bg-[hsl(var(--primary))] rounded-full blur-[80px] opacity-20 animate-pulse" />
+                                                <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#7C6F64] rounded-full blur-[80px] opacity-[0.03] animate-pulse" />
 
                                                 <div className="relative p-8 md:p-10 z-10">
                                                     <div className="flex items-center gap-3 mb-8">
-                                                        <div className="w-2 h-2 rounded-full bg-[hsl(var(--primary))] animate-ping" />
-                                                        <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-[hsl(var(--primary))]">Analysis Successful</h4>
+                                                        <div className="w-2 h-2 rounded-full bg-[#8AA89E] animate-ping" />
+                                                        <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-[#8AA89E]">Analysis Successful</h4>
                                                     </div>
 
-                                                    {/* Dynamic Explanation (XAI) */}
-                                                    {/* Dynamic Explanation (XAI Chart) */}
-                                                    {result.explain && result.explain.chart_data && (
-                                                        <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/5">
-                                                            <div className="text-xs font-bold text-[hsl(var(--text-muted))] uppercase tracking-wider mb-2 flex justify-between">
-                                                                <span>AI Decision Factors</span>
-                                                                <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded">SHAP Analysis</span>
+                                                    {/* XAI Link */}
+                                                    {result.explain && (
+                                                        <div className="mb-6 p-4 bg-[#FBF8F3] rounded-xl border border-[#E6E0D6]">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Info size={14} className="text-[#7C6F64]" />
+                                                                    <span className="text-xs font-bold text-[#2F2A26] uppercase tracking-wider">AI Insights Available</span>
+                                                                </div>
+                                                                <Link to="/explainable-ai" className="text-[10px] font-bold text-[#7C6F64] hover:underline flex items-center gap-1">
+                                                                    View Details <ChevronRight size={10} />
+                                                                </Link>
                                                             </div>
-                                                            <div className="h-[200px] w-full">
-                                                                <ResponsiveContainer width="100%" height="100%">
-                                                                    <BarChart
-                                                                        data={result.explain.chart_data}
-                                                                        layout="vertical"
-                                                                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                                                                    >
-                                                                        <XAxis type="number" hide domain={[-10, 10]} />
-                                                                        <YAxis dataKey="name" type="category" width={80} tick={{ fill: 'hsl(var(--text-muted))', fontSize: 10 }} />
-                                                                        <Tooltip
-                                                                            cursor={{ fill: 'transparent' }}
-                                                                            content={({ active, payload }) => {
-                                                                                if (active && payload && payload.length) {
-                                                                                    return (
-                                                                                        <div className="bg-black/90 border border-white/10 p-2 rounded text-xs text-white">
-                                                                                            <p className="font-bold">{payload[0].payload.name}</p>
-                                                                                            <p>Impact: {payload[0].value > 0 ? '+' : ''}{payload[0].value}</p>
-                                                                                        </div>
-                                                                                    );
-                                                                                }
-                                                                                return null;
-                                                                            }}
-                                                                        />
-                                                                        <ReferenceLine x={0} stroke="#666" />
-                                                                        <Bar dataKey="impact" barSize={10} radius={[4, 4, 4, 4]}>
-                                                                            {result.explain.chart_data.map((entry, index) => (
-                                                                                <Cell key={`cell-${index}`} fill={entry.impact > 0 ? 'hsl(var(--primary))' : '#ef4444'} />
-                                                                            ))}
-                                                                        </Bar>
-                                                                    </BarChart>
-                                                                </ResponsiveContainer>
-                                                            </div>
+                                                            <p className="text-[11px] text-[#6B6259]">
+                                                                Detailed feature importance breakdown is in the Explainable AI section.
+                                                            </p>
                                                         </div>
                                                     )}
 
-                                                    {/* New: Explicit Irrigation Advice for Crop/Fertilizer Tools too */}
-                                                    {activeTool !== 'irrigation' && (
-                                                        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-4">
-                                                            <div className="p-2 bg-blue-500/20 rounded-full">
-                                                                <Droplets className="w-5 h-5 text-blue-400" />
-                                                            </div>
-                                                            <div>
-                                                                <h5 className="text-sm font-bold text-white mb-1">Watering Advice</h5>
-                                                                <p className="text-sm text-blue-200/80 leading-relaxed">
-                                                                    {getIrrigationTip(0, formData.temperature)} {/* Using logic helper */}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    )}
 
                                                     {activeTool === 'crop' && (
                                                         <div>
-                                                            <div className="text-sm font-medium text-[hsl(var(--text-muted))] mb-2">Optimal Crop Identified</div>
-                                                            <div className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                                                            <div className="text-sm font-medium text-[#6B6259] mb-2">Optimal Crop Identified</div>
+                                                            <div className="text-5xl md:text-6xl font-bold text-[#2F2A26] mb-6 tracking-tight">
                                                                 {result.prediction}
                                                             </div>
-
-                                                            {/*
-                                                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-[rgba(0,230,118,0.2)] to-transparent border border-[hsl(var(--primary))]">
-                                                                <Activity className="w-4 h-4 text-emerald-400" />
-                                                                <span className="text-sm font-bold text-emerald-400">
-                                                                    {(result.confidence * 100).toFixed(1)}% Confidence
-                                                                </span>
-                                                            </div>
-                                                            */}
                                                         </div>
                                                     )}
 
                                                     {activeTool === 'fertilizer' && (
                                                         <div>
-                                                            <div className="text-sm font-medium text-[hsl(var(--text-muted))] mb-3">Recommended Formula</div>
-                                                            <div className="text-xl md:text-2xl font-bold text-white leading-relaxed p-4 rounded-xl bg-white/5 border border-white/10 mb-6">
-                                                                {result.recommendation}
+                                                            <div className="text-sm font-medium text-[#6B6259] mb-3">Recommended Formula</div>
+                                                            <div className="text-xl md:text-2xl font-bold text-[#2F2A26] leading-relaxed p-4 rounded-xl bg-[#FBF8F3] border border-[#E6E0D6] mb-6">
+                                                                {result.prediction}
                                                             </div>
 
-                                                            {FERTILIZER_INFO[result.recommendation] && (
-                                                                <div className="bg-[hsl(var(--primary))]/10 border border-[hsl(var(--primary))]/20 rounded-xl p-4">
-                                                                    <div className="flex items-center gap-2 mb-2 text-[hsl(var(--primary))]">
+                                                            {FERTILIZER_INFO[result.prediction] && (
+                                                                <div className="bg-[#8AA89E]/10 border border-[#8AA89E]/20 rounded-xl p-4">
+                                                                    <div className="flex items-center gap-2 mb-2 text-[#8AA89E]">
                                                                         <Activity className="w-4 h-4" />
-                                                                        <span className="text-sm font-bold uppercase tracking-wider">{FERTILIZER_INFO[result.recommendation].type}</span>
+                                                                        <span className="text-sm font-bold uppercase tracking-wider">{FERTILIZER_INFO[result.prediction].type}</span>
                                                                     </div>
-                                                                    <p className="text-sm text-white/80 leading-relaxed">
-                                                                        {FERTILIZER_INFO[result.recommendation].tip}
+                                                                    <p className="text-sm text-[#2F2A26] leading-relaxed">
+                                                                        {FERTILIZER_INFO[result.prediction].tip}
                                                                     </p>
                                                                 </div>
                                                             )}
@@ -459,33 +505,33 @@ const RecommendationSection = () => {
                                                     )}
 
                                                     {activeTool === 'irrigation' && (
-                                                        <div>
-                                                            <div className="text-sm font-medium text-[hsl(var(--text-muted))] mb-3">Irrigation Schedule</div>
-                                                            <div className="flex items-baseline gap-2 mb-2">
-                                                                <div className="text-6xl font-bold text-white">{result.irrigation_hours}</div>
-                                                                <div className="text-xl text-[hsl(var(--text-muted))]">Hours</div>
-                                                            </div>
-                                                            <p className="text-sm text-[hsl(var(--text-muted))] mb-4">Required today based on current moisture.</p>
-
-                                                            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                                                                <div className="flex items-center gap-3">
-                                                                    <Wind className="w-5 h-5 text-blue-400" />
-                                                                    <div className="text-sm text-white">Rainfall Forecast: <span className="font-bold">{formData.rainfall} mm</span></div>
+                                                        <div className="py-6">
+                                                            <div className="p-6 bg-[#8AA89E]/10 border border-[#8AA89E]/20 rounded-2xl flex items-center gap-4">
+                                                                <div className="w-12 h-12 bg-[#8AA89E]/20 rounded-full flex items-center justify-center text-[#8AA89E]">
+                                                                    <Droplets size={24} />
+                                                                </div>
+                                                                <div>
+                                                                    <h5 className="text-lg font-bold text-[#2F2A26] mb-1">{result.status || "Moisture Analysis"}</h5>
+                                                                    <p className="text-sm text-[#6B6259]">
+                                                                        {result.irrigation_hours > 0
+                                                                            ? `We recommend running the irrigation system for ${result.irrigation_hours} hours.`
+                                                                            : "Current soil moisture is sufficient. No irrigation required at this time."}
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     )}
 
-                                                    <div className="mt-10 pt-8 border-t border-white/10">
-                                                        <h5 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                                                            <Sparkles className="w-4 h-4 text-yellow-400" /> AI Suggested Action
+                                                    <div className="mt-6 pt-6 border-t border-[#E6E0D6]">
+                                                        <h5 className="text-sm font-bold text-[#2F2A26] mb-2 flex items-center gap-2">
+                                                            <Sparkles className="w-4 h-4 text-[#7C6F64]" /> AI Advice
                                                         </h5>
-                                                        <p className="text-sm text-[hsl(var(--text-muted))] leading-relaxed">
+                                                        <p className="text-sm text-[#6B6259] leading-relaxed">
                                                             {activeTool === 'irrigation'
-                                                                ? getIrrigationTip(result.irrigation_hours, formData.temperature)
+                                                                ? (result.ai_advice || "Soil moisture is sufficient. Irrigation not required.")
                                                                 : activeTool === 'fertilizer'
-                                                                    ? "Follow the dosage instructions carefully. Consider soil testing again after harvest."
-                                                                    : `Based on these results, the system recommends planting ${result.prediction || 'this crop'} for optimal yield.`
+                                                                    ? "Follow the dosage instructions carefully. Your soil has nutrient gaps that this fertilizer will address."
+                                                                    : `Based on these results, we recommend planting ${result.prediction || 'this crop'} for optimal yield.`
                                                             }
                                                         </p>
                                                     </div>

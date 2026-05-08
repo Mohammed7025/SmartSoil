@@ -3,32 +3,38 @@ from pydantic import BaseModel
 import json
 import os
 import requests
-from typing import List
+from typing import List, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 ACTIVE_LOCATION_FILE = "active_location.json"
 
-# Use the key provided from env
-API_KEY = os.getenv("OPENWEATHER_API_KEY")
-GEO_URL = "http://api.openweathermap.org/geo/1.0/direct"
-
 class LocationSelectRequest(BaseModel):
     name: str
-    lat: float
-    lon: float
+    place_id: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
 
 @router.get("/locations/search")
 def search_locations(q: str):
     if not q:
         return []
     
+    api_key = os.getenv("GOOGLE_GEOCODING_API_KEY")
+    if not api_key:
+        print("Places API error: GOOGLE_GEOCODING_API_KEY not found")
+        return []
+
     try:
+        url = f"https://maps.googleapis.com/maps/api/place/autocomplete/json"
         response = requests.get(
-            GEO_URL,
+            url,
             params={
-                "q": q,
-                "limit": 10,
-                "appid": API_KEY
+                "input": q,
+                "types": "(cities)",
+                "key": api_key
             },
             timeout=10
         )
@@ -36,43 +42,73 @@ def search_locations(q: str):
         data = response.json()
         
         results = []
-        for item in data:
-            # Format: City, State, Country
-            parts = [item.get("name")]
-            if "state" in item:
-                parts.append(item["state"])
-            if "country" in item:
-                parts.append(item["country"])
-            
-            display_name = ", ".join(parts)
-            
+        for item in data.get("predictions", []):
             results.append({
-                "name": display_name,
-                "lat": item["lat"],
-                "lon": item["lon"]
+                "name": item.get("description"),
+                "place_id": item.get("place_id")
             })
         return results
         
     except requests.RequestException as e:
-        print(f"Geocoding API error: {e}")
+        print(f"Places API error: {e}")
         return []
 
 @router.post("/locations/select")
 def select_location(req: LocationSelectRequest):
-    data = {
+    lat = req.lat
+    lon = req.lon
+
+    if req.place_id:
+        api_key = os.getenv("GOOGLE_GEOCODING_API_KEY")
+        if not api_key:
+            if lat is not None and lon is not None:
+                print("Geocoding API key not found, using provided coordinates")
+            else:
+                raise HTTPException(status_code=500, detail="Geocoding API key not found and no coordinates provided")
+        else:
+            try:
+                url = f"https://maps.googleapis.com/maps/api/geocode/json"
+                response = requests.get(
+                    url,
+                    params={
+                        "place_id": req.place_id,
+                        "key": api_key
+                    },
+                    timeout=10
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                if data.get("status") == "OK" and len(data.get("results", [])) > 0:
+                    gc_loc = data["results"][0]["geometry"]["location"]
+                    lat = gc_loc["lat"]
+                    lon = gc_loc["lng"]
+                elif lat is None or lon is None:
+                    raise HTTPException(status_code=400, detail="Could not resolve coordinates for place and none provided")
+                    
+            except Exception as e:
+                if lat is None or lon is None:
+                    raise HTTPException(status_code=500, detail=f"Failed to resolve location: {e}")
+                print(f"Failed to resolve location from place_id, using provided coordinates: {e}")
+
+    if lat is None or lon is None:
+        raise HTTPException(status_code=400, detail="Either place_id or lat/lon must be provided")
+
+    location_data = {
         "name": req.name,
-        "lat": req.lat,
-        "lon": req.lon
+        "lat": lat,
+        "lon": lon
     }
-    
-    # Save to file
+        
     try:
+        # Save to file
         with open(ACTIVE_LOCATION_FILE, "w") as f:
-            json.dump(data, f)
+            json.dump(location_data, f)
+            
+        return {"message": "Location selected", "active_location": location_data}
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save location: {e}")
-    
-    return {"message": "Location selected", "active_location": data}
 
 @router.get("/locations/active")
 def get_active_location():

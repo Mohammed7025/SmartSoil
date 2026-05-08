@@ -58,6 +58,12 @@ export function AuthProvider({ children }) {
         return Promise.resolve();
     }
 
+    function updateUser(userData) {
+        setCurrentUser(userData);
+        localStorage.setItem('smartSoilUser', JSON.stringify(userData));
+    }
+
+
     // Persist session
     useEffect(() => {
         const storedUser = localStorage.getItem('smartSoilUser');
@@ -71,8 +77,10 @@ export function AuthProvider({ children }) {
         currentUser,
         login,
         signup,
-        logout
+        logout,
+        updateUser
     };
+
 
     return (
         <AuthContext.Provider value={value}>
